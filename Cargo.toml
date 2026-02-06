@@ -1,0 +1,15 @@
+[package]
+name = "ndpi-rs"
+version = "0.1.0"
+edition = "2024"
+authors = ["msnex"]
+keywords = ["dpi", "ndpi", "packet"]
+readme = "README.md"
+repository = "https://github.com/msnex/ndpi-rs"
+license = "LGPL-3.0"
+build = "build.rs"
+
+[dependencies]
+
+[build-dependencies]
+pkg-config = "0.3"

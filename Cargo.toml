@@ -10,6 +10,7 @@ license = "LGPL-3.0"
 build = "build.rs"
 
 [dependencies]
+libc = "0.2.180"
 
 [build-dependencies]
 pkg-config = "0.3"

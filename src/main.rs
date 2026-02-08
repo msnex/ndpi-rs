@@ -1,6 +1,11 @@
-use ndpi_rs::ndpi_main;
+use ndpi_rs::version::NdpiVersion;
 
 fn main() {
-    let version = ndpi_main::rs_ndpi_revision();
-    println!("ndpi version: {}", version);
+    let version = NdpiVersion::new();
+    println!(
+        "ndpi revision: {}, api version: {}, gcrypt version: {}",
+        version.ndpi_revision.unwrap(),
+        version.api_version,
+        version.gcrypt_version.unwrap()
+    );
 }

@@ -1,4 +1,6 @@
-use ndpi_rs::version::NdpiVersion;
+use ndpi_rs::NdpiVersion;
+
+mod args;
 
 fn main() {
     let version = NdpiVersion::new();
@@ -8,4 +10,12 @@ fn main() {
         version.api_version,
         version.gcrypt_version.unwrap()
     );
+
+    let args = args::args();
+    println!("{:?}", args);
+
+    if args.input.is_empty() {
+        println!("No pcap file or device specified");
+        return;
+    }
 }

@@ -1,10 +1,12 @@
 use crate::ffi;
 use std::ffi::CStr;
 
-#[derive(Debug, Default)]
 pub struct NdpiVersion {
+    /// nDPI revision
     pub ndpi_revision: Option<String>,
+    /// API version
     pub api_version: u16,
+    /// libgcrypt version
     pub gcrypt_version: Option<String>,
 }
 

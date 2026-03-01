@@ -42,6 +42,10 @@ impl NdpiFlow {
             return Err(NdpiError::InitNdpiFlow);
         }
 
+        unsafe {
+            std::ptr::write_bytes(flow, 0, flow_size);
+        }
+
         Ok(Self {
             flow: flow as *mut ffi::ndpi_flow_struct,
         })

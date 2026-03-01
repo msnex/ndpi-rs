@@ -1,7 +1,7 @@
 use crate::error::NdpiError;
 use crate::ffi;
 use crate::flow::{NdpiFlow, NdpiFlowInputInfo};
-use crate::types::NdpiMasterAppProtocol;
+use crate::types::NdpiProtocol;
 use libc::c_int;
 use std::ffi::CStr;
 
@@ -57,8 +57,6 @@ impl Drop for NdpiGlobalCtx {
 /// Manages protocol detection and analysis of network traffic.
 pub struct NdpiDetection {
     ndpi_struct: *mut ffi::ndpi_detection_module_struct,
-    detected_l7_proto: ffi::ndpi_proto,
-    guessed_l7_proto: ffi::ndpi_proto,
 }
 
 impl NdpiDetection {
@@ -99,11 +97,7 @@ impl NdpiDetection {
             return Err(NdpiError::InitNdpiDetectionModule);
         }
 
-        Ok(Self {
-            ndpi_struct,
-            detected_l7_proto: ffi::ndpi_proto::default(),
-            guessed_l7_proto: ffi::ndpi_proto::default(),
-        })
+        Ok(Self { ndpi_struct })
     }
 
     /// Finalizes detection module initialization.
@@ -337,14 +331,14 @@ impl NdpiDetection {
         packet: &[u8],
         packet_len: u16,
         packet_time_ms: u64,
-    ) {
+    ) -> NdpiProtocol {
         let input_info = if let Some(input_info) = flow_input_info {
             input_info.as_ptr()
         } else {
             std::ptr::null_mut()
         };
 
-        self.detected_l7_proto = unsafe {
+        let detected_proto = unsafe {
             ffi::ndpi_detection_process_packet(
                 self.ndpi_struct,
                 flow.as_ptr(),
@@ -354,108 +348,12 @@ impl NdpiDetection {
                 input_info,
             )
         };
-    }
 
-    /// Checks if a protocol was detected.
-    ///
-    /// Returns `true` if master protocol, application protocol, or category was identified.
-    ///
-    /// # Returns
-    ///
-    /// - `true` - Protocol detected
-    /// - `false` - No protocol detected
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use ndpi::NdpiDetection;
-    ///
-    /// let mut detection = NdpiDetection::new(None).unwrap();
-    /// detection.finalize().unwrap();
-    ///
-    /// // Initially, no protocol is detected
-    /// assert!(!detection.protocol_was_detected());
-    ///
-    /// // After processing packets, this may return true
-    /// // detection.process_packet(...);
-    /// // if detection.protocol_was_detected() {
-    /// //     // Protocol was detected
-    /// // }
-    /// ```
-    #[inline]
-    pub fn protocol_was_detected(&self) -> bool {
-        let unknown_proto = ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_UNKNOWN.0 as u16;
-        if self.detected_l7_proto.proto.master_protocol != unknown_proto
-            || self.detected_l7_proto.proto.app_protocol != unknown_proto
-            || self.detected_l7_proto.category
-                != ffi::ndpi_protocol_category_t::NDPI_PROTOCOL_CATEGORY_UNSPECIFIED
-        {
-            true
-        } else {
-            false
+        NdpiProtocol {
+            master_protocol: detected_proto.proto.master_protocol,
+            app_protocol: detected_proto.proto.app_protocol,
+            category: detected_proto.category.0,
         }
-    }
-
-    /// Gets detected master and application protocol.
-    ///
-    /// Returns protocol IDs from the last `process_packet` call.
-    ///
-    /// # Returns
-    ///
-    /// `NdpiMasterAppProtocol` with:
-    /// - `master_protocol` - Master protocol ID (e.g., HTTP, TLS)
-    /// - `app_protocol` - Application protocol ID (e.g., Facebook, YouTube)
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use ndpi::{NdpiDetection, NdpiFlow};
-    ///
-    /// let mut detection = NdpiDetection::new(None).unwrap();
-    /// detection.finalize().unwrap();
-    ///
-    /// let flow = NdpiFlow::new().unwrap();
-    /// // Process a packet...
-    ///
-    /// let protocol = detection.get_master_app_protocol();
-    /// println!("Master protocol: {}, App protocol: {}",
-    ///          protocol.master_protocol, protocol.app_protocol);
-    /// ```
-    #[inline]
-    pub fn get_master_app_protocol(&self) -> NdpiMasterAppProtocol {
-        NdpiMasterAppProtocol {
-            master_protocol: self.detected_l7_proto.proto.master_protocol,
-            app_protocol: self.detected_l7_proto.proto.app_protocol,
-        }
-    }
-
-    /// Gets detected protocol category.
-    ///
-    /// Returns category ID from the last `process_packet` call.
-    /// Categories group protocols by function (e.g., Web, Streaming, SocialNetwork).
-    ///
-    /// # Returns
-    ///
-    /// Protocol category ID (`u32`).
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use ndpi::{NdpiDetection, NdpiFlow};
-    ///
-    /// let mut detection = NdpiDetection::new(None).unwrap();
-    /// detection.finalize().unwrap();
-    ///
-    /// let flow = NdpiFlow::new().unwrap();
-    /// // Process a packet...
-    ///
-    /// let category_id = detection.get_protocol_category();
-    /// let category_name = detection.get_protocol_category_name(category_id);
-    /// println!("Protocol category: {}", category_name.to_str().unwrap());
-    /// ```
-    #[inline]
-    pub fn get_protocol_category(&self) -> u32 {
-        self.detected_l7_proto.category.0
     }
 
     /// Attempts protocol guessing when detection fails.
@@ -483,76 +381,14 @@ impl NdpiDetection {
     /// let guessed_proto = detection.get_guessed_master_app_protocol();
     /// println!("Guessed protocol: {}", detection.get_protocol_name(guessed_proto.master_protocol).to_str().unwrap());
     /// ```
-    pub fn giveup(&mut self, flow: &mut NdpiFlow) {
-        self.guessed_l7_proto =
-            unsafe { ffi::ndpi_detection_giveup(self.ndpi_struct, flow.as_ptr()) }
-    }
+    pub fn giveup(&mut self, flow: &mut NdpiFlow) -> NdpiProtocol {
+        let guessed_proto = unsafe { ffi::ndpi_detection_giveup(self.ndpi_struct, flow.as_ptr()) };
 
-    /// Gets guessed master and application protocol.
-    ///
-    /// Returns protocol IDs from `giveup()` when regular detection failed.
-    ///
-    /// # Returns
-    ///
-    /// `NdpiMasterAppProtocol` with:
-    /// - `master_protocol` - Guessed master protocol ID
-    /// - `app_protocol` - Guessed application protocol ID
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use ndpi::{NdpiDetection, NdpiFlow};
-    ///
-    /// let mut detection = NdpiDetection::new(None).unwrap();
-    /// detection.finalize().unwrap();
-    ///
-    /// let flow = NdpiFlow::new().unwrap();
-    /// // Process packets without successful detection...
-    ///
-    /// // Try to guess the protocol
-    /// detection.giveup(&flow);
-    ///
-    /// let guessed_protocol = detection.get_guessed_master_app_protocol();
-    /// println!("Guessed master protocol: {}, Guessed app protocol: {}",
-    ///          guessed_protocol.master_protocol, guessed_protocol.app_protocol);
-    /// ```
-    #[inline]
-    pub fn get_guessed_master_app_protocol(&self) -> NdpiMasterAppProtocol {
-        NdpiMasterAppProtocol {
-            master_protocol: self.guessed_l7_proto.proto.master_protocol,
-            app_protocol: self.guessed_l7_proto.proto.app_protocol,
+        NdpiProtocol {
+            master_protocol: guessed_proto.proto.master_protocol,
+            app_protocol: guessed_proto.proto.app_protocol,
+            category: guessed_proto.category.0,
         }
-    }
-
-    /// Gets guessed protocol category.
-    ///
-    /// Returns category ID from `giveup()` when regular detection failed.
-    ///
-    /// # Returns
-    ///
-    /// Guessed protocol category ID (`u32`).
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use ndpi::{NdpiDetection, NdpiFlow};
-    ///
-    /// let mut detection = NdpiDetection::new(None).unwrap();
-    /// detection.finalize().unwrap();
-    ///
-    /// let flow = NdpiFlow::new().unwrap();
-    /// // Process packets without successful detection...
-    ///
-    /// // Try to guess the protocol
-    /// detection.giveup(&flow);
-    ///
-    /// let guessed_category_id = detection.get_guessed_protocol_category();
-    /// let guessed_category_name = detection.get_protocol_category_name(guessed_category_id);
-    /// println!("Guessed protocol category: {}", guessed_category_name.to_str().unwrap());
-    /// ```
-    #[inline]
-    pub fn get_guessed_protocol_category(&self) -> u32 {
-        self.guessed_l7_proto.category.0
     }
 
     /// Gets protocol name by ID.

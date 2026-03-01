@@ -1,6 +1,7 @@
 use crate::ffi;
 use std::ffi::CStr;
 
+#[derive(Debug, Clone)]
 pub struct NdpiVersion {
     /// nDPI revision
     pub ndpi_revision: Option<String>,

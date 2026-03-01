@@ -1,0 +1,20 @@
+// Project-local debug tasks
+//
+// For more documentation on how to configure debug tasks,
+// see: https://zed.dev/docs/debugger
+[
+    {
+        "label": "Debug example ndpiReader",
+        "adapter": "CodeLLDB",
+        "build": {
+            "command": "cargo",
+            "args": ["build", "--example", "ndpiReader"],
+            "show_command": true
+        },
+        "request": "launch",
+        "program": "$ZED_WORKTREE_ROOT/target/debug/examples/ndpiReader",
+        "args": ["-i", "ens160"],
+        "cwd": "$ZED_WORKTREE_ROOT",
+        "sourceLanguages": ["rust"]
+    }
+]

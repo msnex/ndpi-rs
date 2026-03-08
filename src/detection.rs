@@ -25,7 +25,7 @@ impl NdpiGlobalCtx {
     /// # Example
     ///
     /// ```
-    /// use ndpi::NdpiGlobalCtx;
+    /// use ndpi_rs::NdpiGlobalCtx;
     ///
     /// let global_ctx = NdpiGlobalCtx::new().unwrap();
     /// ```
@@ -76,7 +76,7 @@ impl NdpiDetection {
     /// # Example
     ///
     /// ```
-    /// use ndpi::{NdpiGlobalCtx, NdpiDetection};
+    /// use ndpi_rs::{NdpiGlobalCtx, NdpiDetection};
     ///
     /// // With global context
     /// let global_ctx = NdpiGlobalCtx::new().unwrap();
@@ -113,7 +113,7 @@ impl NdpiDetection {
     /// # Example
     ///
     /// ```
-    /// use ndpi::NdpiDetection;
+    /// use ndpi_rs::NdpiDetection;
     ///
     /// let mut detection = NdpiDetection::new(None).unwrap();
     /// detection.finalize().unwrap();
@@ -146,7 +146,7 @@ impl NdpiDetection {
     ///
     /// ```
     /// use std::ffi::CStr;
-    /// use ndpi::NdpiDetection;
+    /// use ndpi_rs::NdpiDetection;
     ///
     /// let mut detection = NdpiDetection::new(None).unwrap();
     ///
@@ -199,7 +199,7 @@ impl NdpiDetection {
     ///
     /// ```
     /// use std::ffi::CStr;
-    /// use ndpi::NdpiDetection;
+    /// use ndpi_rs::NdpiDetection;
     ///
     /// let mut detection = NdpiDetection::new(None).unwrap();
     ///
@@ -249,7 +249,7 @@ impl NdpiDetection {
     ///
     /// ```
     /// use std::ffi::CStr;
-    /// use ndpi::NdpiDetection;
+    /// use ndpi_rs::NdpiDetection;
     ///
     /// let mut detection = NdpiDetection::new(None).unwrap();
     ///
@@ -297,7 +297,6 @@ impl NdpiDetection {
     /// Processes a packet for protocol detection.
     ///
     /// Main packet processing function. Analyzes packet to detect application layer protocol.
-    /// Use `protocol_was_detected()` to check results after processing.
     ///
     /// # Arguments
     ///
@@ -307,20 +306,25 @@ impl NdpiDetection {
     /// * `packet_len` - Packet length in bytes.
     /// * `packet_time_ms` - Packet timestamp in milliseconds.
     ///
+    /// # Returns
+    ///
+    /// `NdpiProtocol` containing the detected protocol information.
+    ///
     /// # Example
     ///
     /// ```
-    /// use ndpi::{NdpiDetection, NdpiFlow};
+    /// use ndpi_rs::{NdpiDetection, NdpiFlow};
+    /// use ndpi_rs::types::NdpiProtocol;
     ///
     /// let mut detection = NdpiDetection::new(None).unwrap();
     /// detection.finalize().unwrap();
     ///
-    /// let flow = NdpiFlow::new().unwrap();
+    /// let mut flow = NdpiFlow::new().unwrap();
     /// let packet_data = vec![0x45, 0x00, 0x00, 0x54]; // Example IP packet
     ///
-    /// detection.process_packet(&flow, None, &packet_data, packet_data.len() as u16, 1234567890);
+    /// let protocol = detection.process_packet(&mut flow, None, &packet_data, packet_data.len() as u16, 1234567890);
     ///
-    /// if detection.protocol_was_detected() {
+    /// if protocol.protocol_detected() {
     ///     // Protocol was detected
     /// }
     /// ```
@@ -358,28 +362,30 @@ impl NdpiDetection {
 
     /// Attempts protocol guessing when detection fails.
     ///
-    /// Reduces NDPI_UNKNOWN_PROTOCOL detection. Use `get_guessed_*` methods to access results.
-    /// Must be called before accessing guessed protocol information.
+    /// Reduces NDPI_UNKNOWN_PROTOCOL detection. Returns the guessed protocol information.
     ///
     /// # Arguments
     ///
     /// * `flow` - Flow reference for guessing.
     ///
+    /// # Returns
+    ///
+    /// `NdpiProtocol` containing the guessed protocol information.
+    ///
     /// # Example
     ///
     /// ```
-    /// use ndpi::{NdpiDetection, NdpiFlow};
+    /// use ndpi_rs::{NdpiDetection, NdpiFlow};
+    /// use ndpi_rs::types::NdpiProtocol;
     ///
     /// let mut detection = NdpiDetection::new(None).unwrap();
     /// detection.finalize().unwrap();
-    /// let flow = NdpiFlow::new().unwrap();
+    /// let mut flow = NdpiFlow::new().unwrap();
     ///
     /// // Force early detection
-    /// detection.giveup(&flow);
+    /// let guessed_protocol = detection.giveup(&mut flow);
     ///
-    /// // Get the guessed protocol (only meaningful after giveup())
-    /// let guessed_proto = detection.get_guessed_master_app_protocol();
-    /// println!("Guessed protocol: {}", detection.get_protocol_name(guessed_proto.master_protocol).to_str().unwrap());
+    /// println!("Guessed protocol: {}", detection.get_protocol_name(guessed_protocol.master_protocol).to_string_lossy());
     /// ```
     pub fn giveup(&mut self, flow: &mut NdpiFlow) -> NdpiProtocol {
         let guessed_proto = unsafe { ffi::ndpi_detection_giveup(self.ndpi_struct, flow.as_ptr()) };
@@ -406,13 +412,14 @@ impl NdpiDetection {
     /// # Example
     ///
     /// ```
-    /// use ndpi::NdpiDetection;
+    /// use ndpi_rs::NdpiDetection;
+    /// use std::ffi::CStr;
     ///
     /// let mut detection = NdpiDetection::new(None).unwrap();
     /// detection.finalize().unwrap();
     /// // process packet
     /// let protocol_name = detection.get_protocol_name(7);
-    /// println!("Protocol name: {}", protocol_name.to_str().unwrap());
+    /// println!("Protocol name: {}", protocol_name.to_string_lossy());
     /// ```
     pub fn get_protocol_name(&self, proto_id: u16) -> &CStr {
         let ptr = unsafe { ffi::ndpi_get_proto_name(self.ndpi_struct, proto_id) };
@@ -438,13 +445,14 @@ impl NdpiDetection {
     /// # Example
     ///
     /// ```
-    /// use ndpi::NdpiDetection;
+    /// use ndpi_rs::NdpiDetection;
+    /// use std::ffi::CStr;
     ///
     /// let mut detection = NdpiDetection::new(None).unwrap();
     /// detection.finalize().unwrap();
     /// // process packet
     /// let category_name = detection.get_protocol_category_name(5); // Web category ID
-    /// println!("Category name: {}", category_name.to_str().unwrap());
+    /// println!("Category name: {}", category_name.to_string_lossy());
     /// ```
     pub fn get_protocol_category_name(&self, category_id: u32) -> &CStr {
         let category = ffi::ndpi_protocol_category_t(category_id);

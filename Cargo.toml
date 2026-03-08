@@ -7,7 +7,7 @@ authors = ["msnex"]
 keywords = ["ffi", "dpi", "ndpi", "packet", "traffic"]
 readme = "README.md"
 repository = "https://github.com/msnex/ndpi-rs"
-license = "LGPL-3.0"
+license = "MIT"
 build = "build.rs"
 
 [[example]]

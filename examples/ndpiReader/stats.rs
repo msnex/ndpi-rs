@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 pub enum FlowStatsOp {
     Add,
@@ -17,12 +17,13 @@ pub struct NdpiProtoStats {
 pub struct Stats {
     pub thread_id: usize,
     pub pcap_dev: String,
+    pub flow_cnt: usize,
     pub pkt_cnt: usize,
     pub pkt_bytes: usize,
     pub eth_pkt_cnt: usize,
     pub eth_pkt_bytes: usize,
-    pub ndpi_protos: HashMap<String, HashMap<String, NdpiProtoStats>>,
-    pub flow_cnt: usize,
+    pub ndpi_protos: BTreeMap<String, BTreeMap<String, NdpiProtoStats>>,
+    pub ndpi_risks: BTreeMap<String, usize>,
 }
 
 impl Stats {
@@ -69,6 +70,15 @@ impl Stats {
                 println!();
             }
         }
+
+        if self.ndpi_risks.len() > 0 {
+            println!("    Risk stats:");
+            for risk in &self.ndpi_risks {
+                println!("      {:<36} {}", risk.0, risk.1);
+            }
+            println!();
+        }
+
         println!();
     }
 }

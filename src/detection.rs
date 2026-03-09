@@ -345,7 +345,7 @@ impl NdpiDetection {
         let detected_proto = unsafe {
             ffi::ndpi_detection_process_packet(
                 self.ndpi_struct,
-                flow.as_ptr(),
+                flow.as_mut_ptr(),
                 packet.as_ptr(),
                 packet_len,
                 packet_time_ms,
@@ -388,7 +388,8 @@ impl NdpiDetection {
     /// println!("Guessed protocol: {}", detection.get_protocol_name(guessed_protocol.master_protocol).to_string_lossy());
     /// ```
     pub fn giveup(&mut self, flow: &mut NdpiFlow) -> NdpiProtocol {
-        let guessed_proto = unsafe { ffi::ndpi_detection_giveup(self.ndpi_struct, flow.as_ptr()) };
+        let guessed_proto =
+            unsafe { ffi::ndpi_detection_giveup(self.ndpi_struct, flow.as_mut_ptr()) };
 
         NdpiProtocol {
             master_protocol: guessed_proto.proto.master_protocol,

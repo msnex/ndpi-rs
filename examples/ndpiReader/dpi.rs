@@ -14,6 +14,7 @@ use ndpi_rs::flow::NDPI_FLOW_BEGINNING_UNKNOWN;
 use ndpi_rs::flow::NDPI_IN_PKT_DIR_UNKNOWN;
 use ndpi_rs::flow::NdpiFlowInputInfo;
 use ndpi_rs::types::NdpiProtocol;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -374,8 +375,7 @@ impl WorkFlow {
 
     fn ndpi_stats_update(
         detection: &NdpiDetection,
-        pkt_cnt: usize,
-        pkt_bytes: usize,
+        flow: &Flow,
         flow_op: FlowStatsOp,
         ndpi_proto: &NdpiProtocol,
         stats: &mut Stats,
@@ -402,33 +402,47 @@ impl WorkFlow {
                 if let FlowStatsOp::Add = flow_op {
                     proto_item.flow_cnt += 1;
                 }
-                proto_item.pkt_cnt += pkt_cnt;
-                proto_item.pkt_bytes += pkt_bytes;
+                proto_item.pkt_cnt = flow.pkt_cnt;
+                proto_item.pkt_bytes = flow.pkt_bytes;
             } else {
                 // new
                 proto_stats.insert(
                     app_protocol,
                     NdpiProtoStats {
                         flow_cnt: 1,
-                        pkt_cnt,
-                        pkt_bytes,
+                        pkt_cnt: flow.pkt_cnt,
+                        pkt_bytes: flow.pkt_bytes,
                         category,
                     },
                 );
             }
         } else {
             // new
-            let mut proto_stats = HashMap::new();
+            let mut proto_stats = BTreeMap::new();
             proto_stats.insert(
                 app_protocol,
                 NdpiProtoStats {
                     flow_cnt: 1,
-                    pkt_cnt,
-                    pkt_bytes,
+                    pkt_cnt: flow.pkt_cnt,
+                    pkt_bytes: flow.pkt_bytes,
                     category,
                 },
             );
             stats.ndpi_protos.insert(master_protocol, proto_stats);
+        }
+
+        if flow.ndpi_flow.has_risk() {
+            let risk_strs = flow.ndpi_flow.get_risk_str_vec();
+            for risk_str in risk_strs {
+                let risk = risk_str.to_string_lossy().to_string();
+                if let Some(flows) = stats.ndpi_risks.get_mut(&risk) {
+                    if let FlowStatsOp::Add = flow_op {
+                        *flows += 1;
+                    }
+                } else {
+                    stats.ndpi_risks.insert(risk, 1);
+                }
+            }
         }
     }
 
@@ -476,8 +490,7 @@ impl WorkFlow {
                         if !flow.detected && !flow.giveup {
                             Self::ndpi_stats_update(
                                 detection,
-                                flow.pkt_cnt,
-                                flow.pkt_bytes,
+                                &flow,
                                 FlowStatsOp::Add,
                                 &flow.guessed_proto,
                                 stats,
@@ -521,8 +534,7 @@ impl WorkFlow {
             if flow.detected {
                 Self::ndpi_stats_update(
                     detection,
-                    1,
-                    pkt_bytes,
+                    &flow,
                     FlowStatsOp::Keep,
                     &flow.detected_proto,
                     stats,
@@ -530,8 +542,7 @@ impl WorkFlow {
             } else {
                 Self::ndpi_stats_update(
                     detection,
-                    1,
-                    pkt_bytes,
+                    &flow,
                     FlowStatsOp::Keep,
                     &flow.guessed_proto,
                     stats,
@@ -554,8 +565,7 @@ impl WorkFlow {
             flow.detected = true;
             Self::ndpi_stats_update(
                 detection,
-                1,
-                pkt_bytes,
+                &flow,
                 FlowStatsOp::Add,
                 &flow.detected_proto,
                 stats,
@@ -569,8 +579,7 @@ impl WorkFlow {
             flow.giveup = true;
             Self::ndpi_stats_update(
                 detection,
-                1,
-                pkt_bytes,
+                &flow,
                 FlowStatsOp::Add,
                 &flow.guessed_proto,
                 stats,
@@ -639,8 +648,7 @@ impl WorkFlow {
 
             Self::ndpi_stats_update(
                 &self.detection,
-                flow.pkt_cnt,
-                flow.pkt_bytes,
+                &flow,
                 FlowStatsOp::Add,
                 &flow.guessed_proto,
                 &mut self.stats,

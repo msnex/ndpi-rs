@@ -10,6 +10,7 @@ pub struct NdpiProtoStats {
     pub flow_cnt: usize,
     pub pkt_cnt: usize,
     pub pkt_bytes: usize,
+    pub breed: String,
     pub category: String,
 }
 
@@ -49,21 +50,22 @@ impl Stats {
                 println!("      {}:", item.0);
                 // app protocol, protocol stats and category: indent 8 spaces
                 println!(
-                    "        {:<25} {:<10} {:<12} {:<18} {}",
-                    "App Protocol", "Flows", "Packets", "Bytes", "Category"
+                    "        {:<25} {:<10} {:<12} {:<18} {:<25} {}",
+                    "App Protocol", "Flows", "Packets", "Bytes", "Breed", "Category"
                 );
                 println!(
-                    "        {:-<25} {:-<10} {:-<12} {:-<18} {:-<25}",
-                    "", "", "", "", ""
+                    "        {:-<25} {:-<10} {:-<12} {:-<18} {:-<25} {:-<25}",
+                    "", "", "", "", "", ""
                 );
                 for proto_item in item.1 {
                     let proto_stats = proto_item.1;
                     println!(
-                        "        {:<25} {:<10} {:<12} {:<18} {}",
+                        "        {:<25} {:<10} {:<12} {:<18} {:<25} {}",
                         proto_item.0,
                         proto_stats.flow_cnt,
                         proto_stats.pkt_cnt,
                         proto_stats.pkt_bytes,
+                        proto_stats.breed,
                         proto_stats.category,
                     );
                 }
@@ -74,7 +76,7 @@ impl Stats {
         if self.ndpi_risks.len() > 0 {
             println!("    Risk stats:");
             for risk in &self.ndpi_risks {
-                println!("      {:<36} {}", risk.0, risk.1);
+                println!("      {:<36} flows: {}", risk.0, risk.1);
             }
             println!();
         }

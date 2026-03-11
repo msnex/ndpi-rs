@@ -85,6 +85,7 @@ impl NdpiDetection {
     /// // Without global context
     /// let detection = NdpiDetection::new(None).unwrap();
     /// ```
+    #[inline]
     pub fn new(g_ctx: Option<&NdpiGlobalCtx>) -> Result<Self, NdpiError> {
         let ndpi_struct;
         if let Some(ctx) = g_ctx {
@@ -118,6 +119,7 @@ impl NdpiDetection {
     /// let mut detection = NdpiDetection::new(None).unwrap();
     /// detection.finalize().unwrap();
     /// ```
+    #[inline]
     pub fn finalize(&mut self) -> Result<(), NdpiError> {
         let ret = unsafe { ffi::ndpi_finalize_initialization(self.ndpi_struct) };
         if ret == 0 {
@@ -157,6 +159,7 @@ impl NdpiDetection {
     ///
     /// detection.finalize().unwrap();
     /// ```
+    #[inline]
     pub fn set_config(
         &mut self,
         proto: Option<&CStr>,
@@ -209,6 +212,7 @@ impl NdpiDetection {
     ///
     /// detection.finalize().unwrap();
     /// ```
+    #[inline]
     pub fn set_config_u64(
         &mut self,
         proto: Option<&CStr>,
@@ -262,6 +266,7 @@ impl NdpiDetection {
     ///
     /// detection.finalize().unwrap();
     /// ```
+    #[inline]
     pub fn get_config(
         &self,
         proto: Option<&CStr>,
@@ -328,6 +333,7 @@ impl NdpiDetection {
     ///     // Protocol was detected
     /// }
     /// ```
+    #[inline]
     pub fn process_packet(
         &mut self,
         flow: &mut NdpiFlow,
@@ -356,6 +362,7 @@ impl NdpiDetection {
         NdpiProtocol {
             master_protocol: detected_proto.proto.master_protocol,
             app_protocol: detected_proto.proto.app_protocol,
+            breed: detected_proto.breed.0,
             category: detected_proto.category.0,
         }
     }
@@ -387,6 +394,7 @@ impl NdpiDetection {
     ///
     /// println!("Guessed protocol: {}", detection.get_protocol_name(guessed_protocol.master_protocol).to_string_lossy());
     /// ```
+    #[inline]
     pub fn giveup(&mut self, flow: &mut NdpiFlow) -> NdpiProtocol {
         let guessed_proto =
             unsafe { ffi::ndpi_detection_giveup(self.ndpi_struct, flow.as_mut_ptr()) };
@@ -394,6 +402,7 @@ impl NdpiDetection {
         NdpiProtocol {
             master_protocol: guessed_proto.proto.master_protocol,
             app_protocol: guessed_proto.proto.app_protocol,
+            breed: guessed_proto.breed.0,
             category: guessed_proto.category.0,
         }
     }
@@ -422,6 +431,7 @@ impl NdpiDetection {
     /// let protocol_name = detection.get_protocol_name(7);
     /// println!("Protocol name: {}", protocol_name.to_string_lossy());
     /// ```
+    #[inline]
     pub fn get_protocol_name(&self, proto_id: u16) -> &CStr {
         let ptr = unsafe { ffi::ndpi_get_proto_name(self.ndpi_struct, proto_id) };
         if ptr.is_null() {
@@ -429,6 +439,34 @@ impl NdpiDetection {
         }
 
         unsafe { CStr::from_ptr(ptr) }
+    }
+
+    /// Gets protocol breed ID by protocol ID.
+    ///
+    /// Protocol breeds categorize protocols into high-level groups.
+    ///
+    /// # Arguments
+    ///
+    /// * `proto_id` - Protocol ID to look up.
+    ///
+    /// # Returns
+    ///
+    /// Breed ID as a 32-bit unsigned integer.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ndpi_rs::NdpiDetection;
+    ///
+    /// let mut detection = NdpiDetection::new(None).unwrap();
+    /// detection.finalize().unwrap();
+    /// let breed_id = detection.get_protocol_breed(7);
+    /// println!("Protocol breed ID: {}", breed_id);
+    /// ```
+    #[inline]
+    pub fn get_protocol_breed(&self, proto_id: u16) -> u32 {
+        let breed_id = unsafe { ffi::ndpi_get_proto_breed(self.ndpi_struct, proto_id) };
+        breed_id.0
     }
 
     /// Gets category name by ID.
@@ -455,6 +493,7 @@ impl NdpiDetection {
     /// let category_name = detection.get_protocol_category_name(5); // Web category ID
     /// println!("Category name: {}", category_name.to_string_lossy());
     /// ```
+    #[inline]
     pub fn get_protocol_category_name(&self, category_id: u32) -> &CStr {
         let category = ffi::ndpi_protocol_category_t(category_id);
         let ptr = unsafe { ffi::ndpi_category_get_name(self.ndpi_struct, category) };

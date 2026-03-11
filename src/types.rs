@@ -4,6 +4,7 @@ use crate::ffi;
 pub struct NdpiProtocol {
     pub master_protocol: u16,
     pub app_protocol: u16,
+    pub breed: u32,
     pub category: u32,
 }
 

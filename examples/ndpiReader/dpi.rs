@@ -13,6 +13,7 @@ use ndpi_rs::NdpiVersion;
 use ndpi_rs::flow::NDPI_FLOW_BEGINNING_UNKNOWN;
 use ndpi_rs::flow::NDPI_IN_PKT_DIR_UNKNOWN;
 use ndpi_rs::flow::NdpiFlowInputInfo;
+use ndpi_rs::get_breed_name;
 use ndpi_rs::types::NdpiProtocol;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
@@ -393,6 +394,11 @@ impl WorkFlow {
             .to_string_lossy();
         let category = category_name.to_string();
 
+        let breed = get_breed_name(ndpi_proto.breed)
+            .unwrap()
+            .to_string_lossy()
+            .to_string();
+
         let master_protocol = master_proto.to_string();
         let app_protocol = app_proto.to_string();
 
@@ -412,6 +418,7 @@ impl WorkFlow {
                         flow_cnt: 1,
                         pkt_cnt: flow.pkt_cnt,
                         pkt_bytes: flow.pkt_bytes,
+                        breed,
                         category,
                     },
                 );
@@ -425,6 +432,7 @@ impl WorkFlow {
                     flow_cnt: 1,
                     pkt_cnt: flow.pkt_cnt,
                     pkt_bytes: flow.pkt_bytes,
+                    breed,
                     category,
                 },
             );

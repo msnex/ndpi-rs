@@ -83,11 +83,18 @@ impl NdpiFlow {
     #[inline]
     pub fn is_set_risk(&self, risk_enum: &ndpi_risk_enum) -> bool {
         let risk = unsafe { (&*self.flow).risk };
-        if risk & risk_enum.0 as u64 != 0 {
+        if risk & (1u64 << risk_enum.0) != 0 {
             true
         } else {
             false
         }
+    }
+
+    /// Returns the raw risk bits as a 64-bit unsigned integer.
+    /// Each bit represents a specific risk flag defined in ndpi_risk_enum.
+    #[inline]
+    pub fn get_risk_bits(&self) -> u64 {
+        unsafe { (&*self.flow).risk }
     }
 
     /// Returns a vector of risk description strings for all set risk flags.
@@ -99,7 +106,7 @@ impl NdpiFlow {
         for risk in 0..max_risks {
             let risk_enum = ndpi_risk_enum(risk);
             if self.is_set_risk(&risk_enum) {
-                if let Some(risk_str) = crate::risk_to_str(risk_enum) {
+                if let Some(risk_str) = crate::risk::risk_to_str(risk_enum) {
                     risk_strs.push(risk_str);
                 }
             }

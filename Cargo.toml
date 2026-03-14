@@ -4,11 +4,13 @@ version = "0.1.0"
 rust-version = "1.92"
 edition = "2024"
 authors = ["msnex"]
+description = "Safe Rust Bindings for nDPI"
 keywords = ["ffi", "dpi", "ndpi", "packet", "traffic"]
 readme = "README.md"
 repository = "https://github.com/msnex/ndpi-rs"
 license = "MIT"
 build = "build.rs"
+exclude = [".zed"]
 
 [[example]]
 name = "ndpiReader"

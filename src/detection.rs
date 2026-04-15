@@ -364,6 +364,7 @@ impl NdpiDetection {
             app_protocol: detected_proto.proto.app_protocol,
             breed: detected_proto.breed.0,
             category: detected_proto.category.0,
+            state: detected_proto.state.0,
         }
     }
 
@@ -404,6 +405,7 @@ impl NdpiDetection {
             app_protocol: guessed_proto.proto.app_protocol,
             breed: guessed_proto.breed.0,
             category: guessed_proto.category.0,
+            state: guessed_proto.state.0,
         }
     }
 

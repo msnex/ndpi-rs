@@ -1,6 +1,6 @@
 pub mod detection;
 pub mod error;
-mod ffi;
+pub mod ffi;
 pub mod flow;
 pub mod risk;
 pub mod types;
@@ -8,8 +8,6 @@ pub mod version;
 
 pub use crate::detection::{NdpiDetection, NdpiGlobalCtx};
 pub use crate::error::NdpiError;
-pub use crate::ffi::ndpi_cfg_error;
-pub use crate::ffi::ndpi_risk_enum;
 pub use crate::flow::NdpiFlow;
 pub use crate::version::NdpiVersion;
 
@@ -30,6 +28,16 @@ pub fn get_breed_name(breed: u32) -> Option<&'static CStr> {
 pub fn get_breed_by_name(name: &CStr) -> u32 {
     let breed_id = unsafe { ffi::ndpi_get_breed_by_name(name.as_ptr()) };
     breed_id.0
+}
+
+// Get http method string
+pub fn get_http_method_name(method: u8) -> Option<&'static CStr> {
+    let method_ptr = unsafe { ffi::ndpi_http_method2str(ffi::ndpi_http_method(method as u32)) };
+    if method_ptr.is_null() {
+        None
+    } else {
+        Some(unsafe { CStr::from_ptr(method_ptr) })
+    }
 }
 
 #[cfg(test)]

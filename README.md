@@ -41,6 +41,6 @@ cargo run --example ndpiReader -- -i ens160 -i ens192
 
 | ndpi-rs | libndpi | Rust     |
 | ------- | ------- | -------- |
-| 0.1.x   | ≥ 5.0.0 | ≥ 1.92.0 |
+| 0.1.x   | = 5.0.0 | ≥ 1.92.0 |
 
 **Note**: The `ndpi-rs` crate itself is MIT licensed, but it depends on `libndpi` which is LGPLv3 licensed. Applications using `ndpi-rs` must comply with LGPLv3 requirements when distributing binaries that include `libndpi`.

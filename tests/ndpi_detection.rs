@@ -38,7 +38,10 @@ fn ndpi_detection_config_test() {
     let param = CStr::from_bytes_with_nul(b"req.body.len\0").unwrap();
     let value = CStr::from_bytes_with_nul(b"64\0").unwrap();
     let res = ndpi.set_config(None, param, value);
-    assert_eq!(res.err(), Some(ndpi_rs::ndpi_cfg_error::NDPI_CFG_NOT_FOUND));
+    assert_eq!(
+        res.err(),
+        Some(ndpi_rs::ffi::ndpi_cfg_error::NDPI_CFG_NOT_FOUND)
+    );
 
     let res = ndpi.finalize();
     assert!(res.is_ok());
@@ -46,7 +49,10 @@ fn ndpi_detection_config_test() {
     // get error
     let param = CStr::from_bytes_with_nul(b"req.body.len\0").unwrap();
     let res = ndpi.get_config(None, param);
-    assert_eq!(res.err(), Some(ndpi_rs::ndpi_cfg_error::NDPI_CFG_NOT_FOUND));
+    assert_eq!(
+        res.err(),
+        Some(ndpi_rs::ffi::ndpi_cfg_error::NDPI_CFG_NOT_FOUND)
+    );
 }
 
 #[test]

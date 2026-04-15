@@ -1,6 +1,8 @@
 use crate::error::NdpiError;
 use crate::ffi::{self, ndpi_risk_enum};
+use crate::types::{FlowDns, FlowHttp};
 use std::ffi::CStr;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 pub const NDPI_IN_PKT_DIR_UNKNOWN: u8 = 0;
 pub const NDPI_IN_PKT_DIR_C_TO_S: u8 = 1;
@@ -127,6 +129,181 @@ impl NdpiFlow {
             }
         }
         risk_enums
+    }
+
+    #[inline]
+    pub fn get_host_server_name<'a>(&self) -> Option<&'a CStr> {
+        unsafe {
+            if (&*self.flow).host_server_name[0] != 0 {
+                Some(CStr::from_ptr((&*self.flow).host_server_name.as_ptr()))
+            } else {
+                None
+            }
+        }
+    }
+
+    /// Extracts DNS metadata from the flow's protos union.
+    ///
+    /// Returns DNS query/response fields populated by the nDPI DNS dissector.
+    /// Response IP addresses are converted to `std::net::IpAddr`.
+    /// The IATA code and PTR domain name are returned as owned `String`s.
+    #[inline]
+    pub fn get_dns<'a>(&self) -> FlowDns<'a> {
+        let dns = unsafe { (&*self.flow).protos.dns.as_ref() };
+
+        let mut rsp_addr: [Option<IpAddr>; 4] = [None, None, None, None];
+        for i in 0..dns.num_rsp_addr.min(4) as usize {
+            rsp_addr[i] = if dns.is_rsp_addr_ipv6[i] != 0 {
+                let in6 = unsafe { dns.rsp_addr[i].ipv6.as_ref() };
+                let bytes = unsafe { *in6.u6_addr.u6_addr8.as_ref() };
+                Some(IpAddr::V6(Ipv6Addr::from(bytes)))
+            } else {
+                let ip = unsafe { *dns.rsp_addr[i].ipv4.as_ref() };
+                Some(IpAddr::V4(Ipv4Addr::from(u32::from_be(ip))))
+            };
+        }
+
+        let iata_code = if dns.geolocation_iata_code[0] != 0 {
+            Some(unsafe { CStr::from_ptr(dns.geolocation_iata_code.as_ptr()) })
+        } else {
+            None
+        };
+
+        let ptr_domain_name = if dns.ptr_domain_name[0] != 0 {
+            Some(unsafe { CStr::from_ptr(dns.ptr_domain_name.as_ptr()) })
+        } else {
+            None
+        };
+
+        FlowDns {
+            num_queries: dns.num_queries,
+            num_answers: dns.num_answers,
+            reply_code: dns.reply_code,
+            num_rsp_addr: dns.num_rsp_addr,
+            is_query: dns.is_query(),
+            transaction_id: dns.transaction_id,
+            query_name: self.get_host_server_name(),
+            query_type: dns.query_type,
+            query_class: dns.query_class,
+            rsp_type: dns.rsp_type,
+            edns0_udp_payload_size: dns.edns0_udp_payload_size,
+            rsp_addr,
+            rsp_addr_ttl: dns.rsp_addr_ttl,
+            iata_code,
+            ptr_domain_name,
+        }
+    }
+
+    #[inline]
+    pub fn get_http<'a>(&self) -> FlowHttp<'a> {
+        // request
+
+        let url = unsafe {
+            if !(&*self.flow).http.url.is_null() {
+                Some(CStr::from_ptr((&*self.flow).http.url))
+            } else {
+                None
+            }
+        };
+
+        let host = unsafe {
+            if !(&*self.flow).http.host.is_null() {
+                Some(CStr::from_ptr((&*self.flow).http.host))
+            } else {
+                None
+            }
+        };
+
+        let req_content_type = unsafe {
+            if !(&*self.flow).http.request_content_type.is_null() {
+                Some(CStr::from_ptr((&*self.flow).http.request_content_type))
+            } else {
+                None
+            }
+        };
+
+        let user_agent = unsafe {
+            if !(&*self.flow).http.user_agent.is_null() {
+                Some(CStr::from_ptr((&*self.flow).http.user_agent))
+            } else {
+                None
+            }
+        };
+
+        let referer = unsafe {
+            if !(&*self.flow).http.referer.is_null() {
+                Some(CStr::from_ptr((&*self.flow).http.referer))
+            } else {
+                None
+            }
+        };
+
+        let xxf = unsafe {
+            if !(&*self.flow).http.nat_ip.is_null() {
+                Some(CStr::from_ptr((&*self.flow).http.nat_ip))
+            } else {
+                None
+            }
+        };
+
+        let server = unsafe {
+            if !(&*self.flow).http.server.is_null() {
+                Some(CStr::from_ptr((&*self.flow).http.server))
+            } else {
+                None
+            }
+        };
+
+        let resp_content_type = unsafe {
+            if !(&*self.flow).http.content_type.is_null() {
+                Some(CStr::from_ptr((&*self.flow).http.content_type))
+            } else {
+                None
+            }
+        };
+
+        let filename = unsafe {
+            if !(&*self.flow).http.filename.is_null() {
+                Some(CStr::from_ptr((&*self.flow).http.filename))
+            } else {
+                None
+            }
+        };
+
+        let username = unsafe {
+            if !(&*self.flow).http.username.is_null() {
+                Some(CStr::from_ptr((&*self.flow).http.username))
+            } else {
+                None
+            }
+        };
+
+        let password = unsafe {
+            if !(&*self.flow).http.password.is_null() {
+                Some(CStr::from_ptr((&*self.flow).http.password))
+            } else {
+                None
+            }
+        };
+
+        unsafe {
+            FlowHttp {
+                method: (&*self.flow).http.method.0 as u8,
+                version: (&*self.flow).http.request_version,
+                url,
+                host,
+                req_content_type,
+                user_agent,
+                referer,
+                status_code: (&*self.flow).http.response_status_code,
+                server,
+                xxf,
+                resp_content_type,
+                filename,
+                username,
+                password,
+            }
+        }
     }
 }
 

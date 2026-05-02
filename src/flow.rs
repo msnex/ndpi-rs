@@ -1,6 +1,6 @@
 use crate::error::NdpiError;
 use crate::ffi::{self, ndpi_risk_enum};
-use crate::types::{FlowDns, FlowHttp};
+use crate::types::{FlowDns, FlowHttp, FlowKerberos, FlowSsdp, FlowSsh, FlowTlsQuic};
 use std::ffi::CStr;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
@@ -303,6 +303,187 @@ impl NdpiFlow {
                 username,
                 password,
             }
+        }
+    }
+
+    #[inline]
+    pub fn get_ssh<'a>(&self) -> FlowSsh<'a> {
+        let ssh = unsafe { (&*self.flow).protos.ssh.as_ref() };
+
+        let client_signature = if ssh.client_signature[0] != 0 {
+            Some(unsafe { CStr::from_ptr(ssh.client_signature.as_ptr()) })
+        } else {
+            None
+        };
+
+        let server_signature = if ssh.server_signature[0] != 0 {
+            Some(unsafe { CStr::from_ptr(ssh.server_signature.as_ptr()) })
+        } else {
+            None
+        };
+
+        let hassh_client = if ssh.hassh_client[0] != 0 {
+            Some(unsafe { CStr::from_ptr(ssh.hassh_client.as_ptr()) })
+        } else {
+            None
+        };
+
+        let hassh_server = if ssh.hassh_server[0] != 0 {
+            Some(unsafe { CStr::from_ptr(ssh.hassh_server.as_ptr()) })
+        } else {
+            None
+        };
+
+        FlowSsh {
+            client_signature,
+            server_signature,
+            hassh_client,
+            hassh_server,
+        }
+    }
+
+    #[inline]
+    pub fn get_kerberos<'a>(&self) -> FlowKerberos<'a> {
+        let krb = unsafe { (&*self.flow).protos.kerberos.as_ref() };
+
+        let hostname = if krb.hostname[0] != 0 {
+            Some(unsafe { CStr::from_ptr(krb.hostname.as_ptr()) })
+        } else {
+            None
+        };
+
+        let domain = if krb.domain[0] != 0 {
+            Some(unsafe { CStr::from_ptr(krb.domain.as_ptr()) })
+        } else {
+            None
+        };
+
+        let username = if krb.username[0] != 0 {
+            Some(unsafe { CStr::from_ptr(krb.username.as_ptr()) })
+        } else {
+            None
+        };
+
+        FlowKerberos {
+            hostname,
+            domain,
+            username,
+        }
+    }
+
+    #[inline]
+    pub fn get_tls_quic<'a>(&self) -> FlowTlsQuic<'a> {
+        let tls_quic = unsafe { (&*self.flow).protos.tls_quic.as_ref() };
+
+        let server_names = if !tls_quic.server_names.is_null() {
+            Some(unsafe {
+                core::slice::from_raw_parts(
+                    tls_quic.server_names,
+                    tls_quic.server_names_len as usize,
+                )
+            })
+        } else {
+            None
+        };
+
+        let issuer = if !tls_quic.issuerDN.is_null() {
+            Some(unsafe { CStr::from_ptr(tls_quic.issuerDN) })
+        } else {
+            None
+        };
+
+        let subject = if !tls_quic.subjectDN.is_null() {
+            Some(unsafe { CStr::from_ptr(tls_quic.subjectDN) })
+        } else {
+            None
+        };
+
+        let ja3_server = if tls_quic.ja3_server[0] != 0 {
+            Some(unsafe { CStr::from_ptr(tls_quic.ja3_server.as_ptr()) })
+        } else {
+            None
+        };
+
+        FlowTlsQuic {
+            sni: self.get_host_server_name(),
+            server_names,
+            issuer,
+            subject,
+            ja3_server,
+            ssl_version: tls_quic.ssl_version,
+            quic_version: tls_quic.quic_version,
+            quic_idle_timeout_sec: tls_quic.quic_idle_timeout_sec,
+        }
+    }
+
+    #[inline]
+    pub fn get_flow_ssdp<'a>(&self) -> FlowSsdp<'a> {
+        let ssdp = unsafe { (&*self.flow).protos.ssdp.as_ref() };
+
+        let method = if !ssdp.method.is_null() {
+            Some(unsafe { CStr::from_ptr(ssdp.method) })
+        } else {
+            None
+        };
+
+        let usn = if !ssdp.usn.is_null() {
+            Some(unsafe { CStr::from_ptr(ssdp.usn) })
+        } else {
+            None
+        };
+
+        let location = if !ssdp.location.is_null() {
+            Some(unsafe { CStr::from_ptr(ssdp.location) })
+        } else {
+            None
+        };
+
+        let nt = if !ssdp.nt.is_null() {
+            Some(unsafe { CStr::from_ptr(ssdp.nt) })
+        } else {
+            None
+        };
+
+        let nts = if !ssdp.nts.is_null() {
+            Some(unsafe { CStr::from_ptr(ssdp.nts) })
+        } else {
+            None
+        };
+
+        let server = if !ssdp.server.is_null() {
+            Some(unsafe { CStr::from_ptr(ssdp.server) })
+        } else {
+            None
+        };
+
+        let man = if !ssdp.man.is_null() {
+            Some(unsafe { CStr::from_ptr(ssdp.man) })
+        } else {
+            None
+        };
+
+        let st = if !ssdp.st.is_null() {
+            Some(unsafe { CStr::from_ptr(ssdp.st) })
+        } else {
+            None
+        };
+
+        let user_agent = if !ssdp.user_agent.is_null() {
+            Some(unsafe { CStr::from_ptr(ssdp.user_agent) })
+        } else {
+            None
+        };
+
+        FlowSsdp {
+            method,
+            usn,
+            location,
+            nt,
+            nts,
+            server,
+            man,
+            st,
+            user_agent,
         }
     }
 }

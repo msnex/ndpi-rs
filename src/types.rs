@@ -31,9 +31,9 @@ impl NdpiProtocol {
     }
 
     #[inline]
-    pub fn is_http(&self) -> bool {
-        let http_proto = ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_HTTP.0 as u16;
-        if self.master_protocol == http_proto || self.app_protocol == http_proto {
+    fn is_app_proto(&self, app_proto: u32) -> bool {
+        let protocol = app_proto as u16;
+        if self.master_protocol == protocol || self.app_protocol == protocol {
             true
         } else {
             false
@@ -41,13 +41,43 @@ impl NdpiProtocol {
     }
 
     #[inline]
+    pub fn is_http(&self) -> bool {
+        self.is_app_proto(ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_HTTP.0)
+    }
+
+    #[inline]
     pub fn is_dns(&self) -> bool {
-        let dns_proto = ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_DNS.0 as u16;
-        if self.master_protocol == dns_proto || self.app_protocol == dns_proto {
-            true
-        } else {
-            false
-        }
+        self.is_app_proto(ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_DNS.0)
+    }
+
+    #[inline]
+    pub fn is_ssh(&self) -> bool {
+        self.is_app_proto(ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_SSH.0)
+    }
+
+    #[inline]
+    pub fn is_kerberos(&self) -> bool {
+        self.is_app_proto(ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_KERBEROS.0)
+    }
+
+    #[inline]
+    pub fn is_tls(&self) -> bool {
+        self.is_app_proto(ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_TLS.0)
+    }
+
+    #[inline]
+    pub fn is_dtls(&self) -> bool {
+        self.is_app_proto(ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_DTLS.0)
+    }
+
+    #[inline]
+    pub fn is_quic(&self) -> bool {
+        self.is_app_proto(ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_QUIC.0)
+    }
+
+    #[inline]
+    pub fn is_ssdp(&self) -> bool {
+        self.is_app_proto(ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_SSDP.0)
     }
 }
 
@@ -94,4 +124,44 @@ pub struct FlowDns<'a> {
     pub rsp_addr_ttl: [u32; 4],
     pub iata_code: Option<&'a CStr>,
     pub ptr_domain_name: Option<&'a CStr>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct FlowSsh<'a> {
+    pub client_signature: Option<&'a CStr>,
+    pub server_signature: Option<&'a CStr>,
+    pub hassh_client: Option<&'a CStr>,
+    pub hassh_server: Option<&'a CStr>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct FlowKerberos<'a> {
+    pub hostname: Option<&'a CStr>,
+    pub domain: Option<&'a CStr>,
+    pub username: Option<&'a CStr>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct FlowTlsQuic<'a> {
+    pub sni: Option<&'a CStr>,
+    pub server_names: Option<&'a [i8]>,
+    pub issuer: Option<&'a CStr>,
+    pub subject: Option<&'a CStr>,
+    pub ja3_server: Option<&'a CStr>,
+    pub ssl_version: u16,
+    pub quic_version: u32,
+    pub quic_idle_timeout_sec: u32,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct FlowSsdp<'a> {
+    pub method: Option<&'a CStr>,
+    pub usn: Option<&'a CStr>,
+    pub location: Option<&'a CStr>,
+    pub nt: Option<&'a CStr>,
+    pub nts: Option<&'a CStr>,
+    pub server: Option<&'a CStr>,
+    pub man: Option<&'a CStr>,
+    pub st: Option<&'a CStr>,
+    pub user_agent: Option<&'a CStr>,
 }

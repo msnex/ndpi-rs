@@ -17,6 +17,7 @@ name = "ndpiReader"
 
 [dependencies]
 libc = "0.2"
+thiserror = "2.0.18"
 
 [dev-dependencies]
 anyhow = "1.0.102"

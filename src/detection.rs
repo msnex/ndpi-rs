@@ -165,7 +165,7 @@ impl NdpiDetection {
         proto: Option<&CStr>,
         param: &CStr,
         value: &CStr,
-    ) -> Result<(), ffi::ndpi_cfg_error> {
+    ) -> Result<(), NdpiError> {
         let protocol = if let Some(protocol) = proto {
             protocol.as_ptr()
         } else {
@@ -177,7 +177,11 @@ impl NdpiDetection {
         };
 
         if ret != ffi::ndpi_cfg_error::NDPI_CFG_OK {
-            Err(ret)
+            Err(NdpiError::SetDetectionConfig(
+                param.to_string_lossy().to_string(),
+                value.to_string_lossy().to_string(),
+                ret.0,
+            ))
         } else {
             Ok(())
         }
@@ -218,7 +222,7 @@ impl NdpiDetection {
         proto: Option<&CStr>,
         param: &CStr,
         value: u64,
-    ) -> Result<(), ffi::ndpi_cfg_error> {
+    ) -> Result<(), NdpiError> {
         let protocol = if let Some(protocol) = proto {
             protocol.as_ptr()
         } else {
@@ -229,7 +233,11 @@ impl NdpiDetection {
             unsafe { ffi::ndpi_set_config_u64(self.ndpi_struct, protocol, param.as_ptr(), value) };
 
         if ret != ffi::ndpi_cfg_error::NDPI_CFG_OK {
-            Err(ret)
+            Err(NdpiError::SetDetectionConfig(
+                param.to_string_lossy().to_string(),
+                value.to_string(),
+                ret.0,
+            ))
         } else {
             Ok(())
         }

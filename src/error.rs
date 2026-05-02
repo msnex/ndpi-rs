@@ -1,24 +1,15 @@
-use std::{error::Error, fmt::Display};
+use thiserror::Error;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Error)]
 pub enum NdpiError {
+    #[error("Failed to init ndpi global context")]
     InitNdpiGlobalCtx,
+    #[error("Failed to set config, param: {0}, value: {1}, error: {2}")]
+    SetDetectionConfig(String, String, i32),
+    #[error("Failed to init ndpi detection module")]
     InitNdpiDetectionModule,
+    #[error("Failed to finalize initialization detection module")]
     FinalizeNdpiDetectionModule,
+    #[error("Failed to init ndpi flow")]
     InitNdpiFlow,
 }
-
-impl Display for NdpiError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            Self::InitNdpiGlobalCtx => write!(f, "initialize ndpi global context failed"),
-            Self::InitNdpiDetectionModule => write!(f, "initialize ndpi detection module failed"),
-            Self::FinalizeNdpiDetectionModule => {
-                write!(f, "finalize initialization detection module failed")
-            }
-            Self::InitNdpiFlow => write!(f, "initialize ndpi flow failed"),
-        }
-    }
-}
-
-impl Error for NdpiError {}

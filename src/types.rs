@@ -32,6 +32,10 @@ impl NdpiProtocol {
 
     #[inline]
     fn is_app_proto(&self, app_proto: u32) -> bool {
+        if app_proto > u16::MAX as u32 {
+            return false;
+        }
+
         let protocol = app_proto as u16;
         if self.master_protocol == protocol || self.app_protocol == protocol {
             true
@@ -48,6 +52,16 @@ impl NdpiProtocol {
     #[inline]
     pub fn is_dns(&self) -> bool {
         self.is_app_proto(ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_DNS.0)
+    }
+
+    #[inline]
+    pub fn is_mdns(&self) -> bool {
+        self.is_app_proto(ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_MDNS.0)
+    }
+
+    #[inline]
+    pub fn is_llmnr(&self) -> bool {
+        self.is_app_proto(ffi::ndpi_protocol_id_t::NDPI_PROTOCOL_LLMNR.0)
     }
 
     #[inline]

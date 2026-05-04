@@ -85,6 +85,22 @@ pub fn get_quic_version_str(version: u32) -> Option<&'static str> {
     }
 }
 
+// Get DNS error code string
+pub fn get_dns_error_code_str(error_code: u8) -> Option<&'static str> {
+    match error_code {
+        1 => Some("FORMERR"),
+        2 => Some("SERVFAIL"),
+        3 => Some("NXDOMAIN"),
+        4 => Some("NOTIMP"),
+        5 => Some("REFUSED"),
+        6 => Some("YXDOMAIN"),
+        7 => Some("XRRSET"),
+        8 => Some("NOTAUTH"),
+        9 => Some("NOTZONE"),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{get_breed_by_name, get_breed_name};
